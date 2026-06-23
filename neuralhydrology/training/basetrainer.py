@@ -159,12 +159,13 @@ class BaseTrainer(object):
         self.model = self._get_model().to(self.device)
         if self.cfg.checkpoint_path is not None:
             LOGGER.info(f"Starting training from Checkpoint {self.cfg.checkpoint_path}")
-            self.model.load_state_dict(torch.load(str(self.cfg.checkpoint_path), map_location=self.device))
+            # weights_only=False needed for PyTorch >= 2.6 compatibility with optimizer states
+            self.model.load_state_dict(torch.load(str(self.cfg.checkpoint_path), map_location=self.device, weights_only=False))
         elif self.cfg.checkpoint_path is None and self.cfg.is_finetuning:
             # the default for finetuning is the last model state
             checkpoint_path = [x for x in sorted(list(self.cfg.base_run_dir.glob('model_epoch*.pt')))][-1]
             LOGGER.info(f"Starting training from checkpoint {checkpoint_path}")
-            self.model.load_state_dict(torch.load(str(checkpoint_path), map_location=self.device))
+            self.model.load_state_dict(torch.load(str(checkpoint_path), map_location=self.device, weights_only=False))
 
         # Freeze model parts from pre-trained model.
         if self.cfg.is_finetuning:
@@ -214,7 +215,7 @@ class BaseTrainer(object):
         """
         if self._early_stopping:
             if self.cfg.is_continue_training:
-                LOGGER.warning("Early stopping state is reset.")   
+                LOGGER.warning("Early stopping state is reset.")
             early_stopper = EarlyStopper(patience = self._patience_early_stopping, min_delta = 0.0001)
 
         if self._dynamic_learning_rate:
@@ -222,7 +223,13 @@ class BaseTrainer(object):
                 LOGGER.warning("Scheduler state is reset.")
             scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, mode='min', factor=self._factor_dynamic_learning_rate, patience=self._patience_dynamic_learning_rate)
 
-        for epoch in range(self._epoch + 1, self._epoch + self.cfg.epochs + 1):
+        # cfg.epochs is the total target epoch, not the number of additional epochs to run.
+        # This way continue_training works correctly without modifying the config between sessions.
+        if self._epoch >= self.cfg.epochs:
+            LOGGER.info(f"Already at epoch {self._epoch}, target is {self.cfg.epochs}. Nothing to train.")
+            return
+
+        for epoch in range(self._epoch + 1, self.cfg.epochs + 1):
             if not self._dynamic_learning_rate:
                 if epoch in self.cfg.learning_rate.keys():
                     LOGGER.info(f"Setting learning rate to {self.cfg.learning_rate[epoch]}")
@@ -263,13 +270,27 @@ class BaseTrainer(object):
         if self.cfg.log_tensorboard:
             self.experiment_logger.stop_tb()
 
+    def _find_latest_checkpoint(self, search_dir: Path) -> Path:
+        """Find the most recent model checkpoint in a run directory.
+
+        Searches both the run directory itself and any continue_training subfolders,
+        since continued runs save their weights one level deeper.
+        """
+        all_weights = list(search_dir.glob('model_epoch*.pt'))
+        # also pick up weights from previous continue_training sessions
+        all_weights += list(search_dir.glob('continue_training_from_epoch*/model_epoch*.pt'))
+        if not all_weights:
+            raise FileNotFoundError(f"No model checkpoint found in {search_dir}")
+        # sort by epoch number in the filename, not by path (paths differ between root and subfolders)
+        return max(all_weights, key=lambda p: int(p.stem[-3:]))
+
     def _get_start_epoch_number(self):
         if self.cfg.is_continue_training:
             if self.cfg.continue_from_epoch is not None:
                 epoch = self.cfg.continue_from_epoch
             else:
-                weight_path = [x for x in sorted(list(self.cfg.run_dir.glob('model_epoch*.pt')))][-1]
-                epoch = weight_path.name[-6:-3]
+                weight_path = self._find_latest_checkpoint(self.cfg.run_dir)
+                epoch = weight_path.stem[-3:]
         else:
             epoch = 0
         return int(epoch)
@@ -279,14 +300,14 @@ class BaseTrainer(object):
             epoch = f"{self.cfg.continue_from_epoch:03d}"
             weight_path = self.cfg.base_run_dir / f"model_epoch{epoch}.pt"
         else:
-            weight_path = [x for x in sorted(list(self.cfg.base_run_dir.glob('model_epoch*.pt')))][-1]
-            epoch = weight_path.name[-6:-3]
+            weight_path = self._find_latest_checkpoint(self.cfg.base_run_dir)
+            epoch = weight_path.stem[-3:]
 
-        optimizer_path = self.cfg.base_run_dir / f"optimizer_state_epoch{epoch}.pt"
+        optimizer_path = weight_path.parent / f"optimizer_state_epoch{epoch}.pt"
 
         LOGGER.info(f"Continue training from epoch {int(epoch)}")
-        self.model.load_state_dict(torch.load(weight_path, map_location=self.device))
-        self.optimizer.load_state_dict(torch.load(str(optimizer_path), map_location=self.device))
+        self.model.load_state_dict(torch.load(weight_path, map_location=self.device, weights_only=False))
+        self.optimizer.load_state_dict(torch.load(str(optimizer_path), map_location=self.device, weights_only=False))
 
     def _save_weights_and_optimizer(self, epoch: int):
         weight_path = self.cfg.run_dir / f"model_epoch{epoch:03d}.pt"
