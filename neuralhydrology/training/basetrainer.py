@@ -106,7 +106,11 @@ class BaseTrainer(object):
                           batch_size=self.cfg.batch_size,
                           shuffle=True,
                           num_workers=self.cfg.num_workers,
-                          collate_fn=ds.collate_fn)
+                          collate_fn=ds.collate_fn,
+                          # pinned memory lets CUDA transfer batches asynchronously while the GPU is busy
+                          pin_memory=self.device.type == 'cuda',
+                          # keeps worker processes alive between epochs instead of restarting them every time
+                          persistent_workers=self.cfg.num_workers > 0)
 
     def _freeze_model_parts(self):
         # freeze all model weights
@@ -157,6 +161,13 @@ class BaseTrainer(object):
         self.loader = self._get_data_loader(ds=ds)
 
         self.model = self._get_model().to(self.device)
+
+        # torch.compile() fuses and optimizes the computation graph — first epoch is slower (compilation),
+        # all subsequent ones are faster. Only available on PyTorch >= 2.0 and worthwhile only on CUDA.
+        if hasattr(torch, 'compile') and self.device.type == 'cuda':
+            self.model = torch.compile(self.model)
+            LOGGER.info("Model compiled with torch.compile()")
+
         if self.cfg.checkpoint_path is not None:
             LOGGER.info(f"Starting training from Checkpoint {self.cfg.checkpoint_path}")
             # weights_only=False needed for PyTorch >= 2.6 compatibility with optimizer states
@@ -331,25 +342,28 @@ class BaseTrainer(object):
             if self._max_updates_per_epoch is not None and i >= self._max_updates_per_epoch:
                 break
 
+            # non_blocking=True lets the transfer overlap with GPU computation on the previous batch
             for key in data.keys():
                 if key.startswith('x_d'):
-                    data[key] = {k: v.to(self.device) for k, v in data[key].items()}
+                    data[key] = {k: v.to(self.device, non_blocking=True) for k, v in data[key].items()}
                 elif not key.startswith('date'):
-                    data[key] = data[key].to(self.device)
+                    data[key] = data[key].to(self.device, non_blocking=True)
 
             # apply possible pre-processing to the batch before the forward pass
             data = self.model.pre_model_hook(data, is_train=True)
 
-            # get predictions
-            predictions = self.model(data)
+            # autocast runs the forward pass and loss in reduced precision (BF16 or FP16 on CUDA),
+            # which uses the GPU's tensor cores and roughly doubles throughput on modern hardware
+            with torch.autocast(device_type=self.device.type, dtype=self._amp_dtype, enabled=self._use_amp):
+                predictions = self.model(data)
 
-            if self.noise_sampler_y is not None:
-                for key in filter(lambda k: 'y' in k, data.keys()):
-                    noise = self.noise_sampler_y.sample(data[key].shape)
-                    # make sure we add near-zero noise to originally near-zero targets
-                    data[key] += (data[key] + self._target_mean / self._target_std) * noise.to(self.device)
+                if self.noise_sampler_y is not None:
+                    for key in filter(lambda k: 'y' in k, data.keys()):
+                        noise = self.noise_sampler_y.sample(data[key].shape)
+                        # make sure we add near-zero noise to originally near-zero targets
+                        data[key] += (data[key] + self._target_mean / self._target_std) * noise.to(self.device)
 
-            loss, all_losses = self.loss_obj(predictions, data)
+                loss, all_losses = self.loss_obj(predictions, data)
 
             # early stop training if loss is NaN
             if torch.isnan(loss):
@@ -360,17 +374,21 @@ class BaseTrainer(object):
             else:
                 nan_count = 0
 
-                # delete old gradients
                 self.optimizer.zero_grad()
 
-                # get gradients
-                loss.backward()
-
-                if self.cfg.clip_gradient_norm is not None:
-                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.clip_gradient_norm)
-
-                # update weights
-                self.optimizer.step()
+                if self._grad_scaler is not None:
+                    # FP16 needs loss scaling to avoid underflow in gradients
+                    self._grad_scaler.scale(loss).backward()
+                    if self.cfg.clip_gradient_norm is not None:
+                        self._grad_scaler.unscale_(self.optimizer)
+                        torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.clip_gradient_norm)
+                    self._grad_scaler.step(self.optimizer)
+                    self._grad_scaler.update()
+                else:
+                    loss.backward()
+                    if self.cfg.clip_gradient_norm is not None:
+                        torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.clip_gradient_norm)
+                    self.optimizer.step()
 
             pbar.set_postfix_str(f"Loss: {loss.item():.4f}")
 
@@ -408,6 +426,28 @@ class BaseTrainer(object):
             else:
                 self.device = torch.device("cpu")
         LOGGER.info(f"### Device {self.device} will be used for training")
+
+        if self.device.type == 'cuda':
+            # lets cuDNN benchmark different kernel implementations and pick the fastest one for our input sizes.
+            # pays off quickly since seq_length and hidden_size are fixed for the whole training run.
+            torch.backends.cudnn.benchmark = True
+
+            # BF16 keeps the same dynamic range as FP32 (no underflow risk), so no GradScaler needed.
+            # Fall back to FP16 + GradScaler on older GPUs that don't support BF16 (pre-Ampere).
+            if torch.cuda.is_bf16_supported():
+                self._use_amp = True
+                self._amp_dtype = torch.bfloat16
+                self._grad_scaler = None
+                LOGGER.info("AMP enabled with BF16 (no gradient scaling needed)")
+            else:
+                self._use_amp = True
+                self._amp_dtype = torch.float16
+                self._grad_scaler = torch.cuda.amp.GradScaler()
+                LOGGER.info("AMP enabled with FP16 + GradScaler")
+        else:
+            self._use_amp = False
+            self._amp_dtype = None
+            self._grad_scaler = None
 
     def _create_folder_structure(self):
         # create as subdirectory within run directory of base run
