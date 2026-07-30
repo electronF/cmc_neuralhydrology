@@ -1,0 +1,259 @@
+2026-07-24 17:36:08,793: Logging to /fs/site8/eccc/mrd/rpnet/ovk001/GripGl_LSTM/new_bassin/EXPERIMENT/Apply_Gl_Lstm_Exp1/runs/V31_30ep-256N_ens1_2407_173608/output.log initialized.
+2026-07-24 17:36:08,793: ### Folder structure created at /fs/site8/eccc/mrd/rpnet/ovk001/GripGl_LSTM/new_bassin/EXPERIMENT/Apply_Gl_Lstm_Exp1/runs/V31_30ep-256N_ens1_2407_173608
+2026-07-24 17:36:08,793: ### Run configurations for V31_30ep-256N_ens1
+2026-07-24 17:36:08,793: data_dir: /home/ovk001/store8/GripGl_LSTM/new_bassin/EXPERIMENT/Gl_Lstm_Exp1
+2026-07-24 17:36:08,793: dataset: generic
+2026-07-24 17:36:08,793: model: cudalstm
+2026-07-24 17:36:08,793: device: cuda:3
+2026-07-24 17:36:08,793: num_workers: 12
+2026-07-24 17:36:08,793: batch_size: 64
+2026-07-24 17:36:08,793: seq_length: 365
+2026-07-24 17:36:08,793: hidden_size: 256
+2026-07-24 17:36:08,793: epochs: 30
+2026-07-24 17:36:08,793: train_start_date: 2010-01-01 00:00:00
+2026-07-24 17:36:08,793: train_end_date: 2020-12-31 00:00:00
+2026-07-24 17:36:08,793: validation_start_date: 2010-01-01 00:00:00
+2026-07-24 17:36:08,793: validation_end_date: 2020-12-31 00:00:00
+2026-07-24 17:36:08,793: test_start_date: 2021-01-01 00:00:00
+2026-07-24 17:36:08,793: test_end_date: 2023-12-31 00:00:00
+2026-07-24 17:36:08,793: train_basin_file: /home/ovk001/store8/GripGl_LSTM/new_bassin/EXPERIMENT/Gl_Lstm_Exp1/bassins/valid_basins_weights.txt
+2026-07-24 17:36:08,793: validation_basin_file: /home/ovk001/store8/GripGl_LSTM/new_bassin/EXPERIMENT/Gl_Lstm_Exp1/bassins/valid_basins_weights.txt
+2026-07-24 17:36:08,793: test_basin_file: /home/ovk001/store8/GripGl_LSTM/new_bassin/EXPERIMENT/Gl_Lstm_Exp1/bassins/valid_basins_weights.txt
+2026-07-24 17:36:08,793: target_variables: ['qobs_mm_per_day']
+2026-07-24 17:36:08,793: dynamic_inputs: ['PR0', 'FB', 'P0', 'FI', 'HR', 'min_TT', 'max_TT', 'UU', 'VV']
+2026-07-24 17:36:08,793: static_attributes: ['p_mean', 'pet_mean', 'aridity', 't_mean', 'frac_snow', 'high_prec_freq', 'high_prec_dur', 'low_prec_freq', 'low_prec_dur', 'Temperate-or-sub-polar-needleleaf-forest', 'Temperate-or-sub-polar-broadleaf-deciduous-forest', 'Mixed-Forest', 'Temperate-or-sub-polar-shrubland', 'Temperate-or-sub-polar-grassland', 'Wetland', 'Cropland', 'Urban-and-Built-up', 'Water', 'Barren-lands', 'mean_elev', 'mean_slope', 'std_elev', 'std_slope', 'area_km2', 'CLAY', 'SAND', 'SILT', 'OC', 'BD', 'GRAV']
+2026-07-24 17:36:08,793: optimizer: Adam
+2026-07-24 17:36:08,793: loss: NSE
+2026-07-24 17:36:08,793: metrics: ['NSE', 'KGE']
+2026-07-24 17:36:08,793: learning_rate: {0: 0.0005, 20: 0.0001, 30: 5e-05}
+2026-07-24 17:36:08,793: clip_gradient_norm: 1
+2026-07-24 17:36:08,793: output_dropout: 0.4
+2026-07-24 17:36:08,793: initial_forget_bias: 3
+2026-07-24 17:36:08,793: allow_subsequent_nan_losses: 10
+2026-07-24 17:36:08,793: clip_targets_to_zero: ['qobs_mm_per_day']
+2026-07-24 17:36:08,793: predict_last_n: 1
+2026-07-24 17:36:08,794: head: regression
+2026-07-24 17:36:08,794: output_activation: linear
+2026-07-24 17:36:08,794: log_interval: 20
+2026-07-24 17:36:08,794: log_tensorboard: True
+2026-07-24 17:36:08,794: log_n_figures: 0
+2026-07-24 17:36:08,794: validate_every: 3
+2026-07-24 17:36:08,794: validate_n_random_basins: 9999
+2026-07-24 17:36:08,794: save_validation_results: False
+2026-07-24 17:36:08,794: run_dir: /fs/site8/eccc/mrd/rpnet/ovk001/GripGl_LSTM/new_bassin/EXPERIMENT/Apply_Gl_Lstm_Exp1/runs/V31_30ep-256N_ens1_2407_173608
+2026-07-24 17:36:08,794: seed: 1
+2026-07-24 17:36:08,794: experiment_name: V31_30ep-256N_ens1
+2026-07-24 17:36:08,794: number_of_basins: 584
+2026-07-24 17:36:08,794: train_dir: /fs/site8/eccc/mrd/rpnet/ovk001/GripGl_LSTM/new_bassin/EXPERIMENT/Apply_Gl_Lstm_Exp1/runs/V31_30ep-256N_ens1_2407_173608/train_data
+2026-07-24 17:36:08,794: img_log_dir: /fs/site8/eccc/mrd/rpnet/ovk001/GripGl_LSTM/new_bassin/EXPERIMENT/Apply_Gl_Lstm_Exp1/runs/V31_30ep-256N_ens1_2407_173608/img_log
+2026-07-24 17:36:09,503: ### Device cuda:3 will be used for training
+2026-07-24 17:36:10,243: Loading basin data into xarray data set.
+2026-07-24 17:36:43,226: Calculating target variable stds per basin
+2026-07-24 17:36:44,300: The following basins had not enough valid target values to calculate a standard deviation: 02AB004, 02AB010, 02AB011, 02AB013, 02AD008, 02AD009, 02DC003, 02DC007, 02DC008, 02DC010, 02JD006, 02JD010, 02JD011, 02JD012, 02JE012, 02JE021, 02KA002, 02KE005, 02KF009, 02LB009, 04010500, 04108660, 04168400, 04220045, 40851385. NSE loss values for this basin will be NaN.
+2026-07-24 17:36:44,914: Create lookup table and convert to pytorch tensor
+2026-07-24 17:37:39,120: These basins do not have a single valid sample in the train period: ['02AB004', '02AB010', '02AB011', '02AB013', '02AD008', '02AD009', '02DC003', '02DC007', '02DC008', '02DC010', '02JD006', '02JD010', '02JD011', '02JD012', '02JE012', '02JE021', '02KA002', '02KE005', '02KF009', '02LB009', '04010500', '04108660', '04168400', '04220045', '40851385']
+2026-07-24 18:17:59,782: Epoch 1 average loss: avg_loss: 0.00393, avg_total_loss: 0.00393
+2026-07-24 18:57:58,008: Epoch 2 average loss: avg_loss: 0.00221, avg_total_loss: 0.00221
+2026-07-24 19:37:46,199: Epoch 3 average loss: avg_loss: 0.00190, avg_total_loss: 0.00190
+2026-07-24 19:37:46,399: The following basins had not enough valid target values to calculate a standard deviation: 02AB004. NSE loss values for this basin will be NaN.
+2026-07-24 19:37:58,339: The following basins had not enough valid target values to calculate a standard deviation: 02AB010. NSE loss values for this basin will be NaN.
+2026-07-24 19:38:03,495: The following basins had not enough valid target values to calculate a standard deviation: 02AB011. NSE loss values for this basin will be NaN.
+2026-07-24 19:38:08,682: The following basins had not enough valid target values to calculate a standard deviation: 02AB013. NSE loss values for this basin will be NaN.
+2026-07-24 19:38:28,118: The following basins had not enough valid target values to calculate a standard deviation: 02AD008. NSE loss values for this basin will be NaN.
+2026-07-24 19:38:32,390: The following basins had not enough valid target values to calculate a standard deviation: 02AD009. NSE loss values for this basin will be NaN.
+2026-07-24 19:39:39,608: The following basins had not enough valid target values to calculate a standard deviation: 02DC003. NSE loss values for this basin will be NaN.
+2026-07-24 19:39:44,777: The following basins had not enough valid target values to calculate a standard deviation: 02DC007. NSE loss values for this basin will be NaN.
+2026-07-24 19:39:48,187: The following basins had not enough valid target values to calculate a standard deviation: 02DC008. NSE loss values for this basin will be NaN.
+2026-07-24 19:39:51,609: The following basins had not enough valid target values to calculate a standard deviation: 02DC010. NSE loss values for this basin will be NaN.
+2026-07-24 19:45:16,194: The following basins had not enough valid target values to calculate a standard deviation: 02JD006. NSE loss values for this basin will be NaN.
+2026-07-24 19:45:19,617: The following basins had not enough valid target values to calculate a standard deviation: 02JD010. NSE loss values for this basin will be NaN.
+2026-07-24 19:45:23,001: The following basins had not enough valid target values to calculate a standard deviation: 02JD011. NSE loss values for this basin will be NaN.
+2026-07-24 19:45:26,425: The following basins had not enough valid target values to calculate a standard deviation: 02JD012. NSE loss values for this basin will be NaN.
+2026-07-24 19:45:29,834: The following basins had not enough valid target values to calculate a standard deviation: 02JE012. NSE loss values for this basin will be NaN.
+2026-07-24 19:45:33,236: The following basins had not enough valid target values to calculate a standard deviation: 02JE021. NSE loss values for this basin will be NaN.
+2026-07-24 19:45:44,847: The following basins had not enough valid target values to calculate a standard deviation: 02KA002. NSE loss values for this basin will be NaN.
+2026-07-24 19:46:00,308: The following basins had not enough valid target values to calculate a standard deviation: 02KE005. NSE loss values for this basin will be NaN.
+2026-07-24 19:46:08,891: The following basins had not enough valid target values to calculate a standard deviation: 02KF009. NSE loss values for this basin will be NaN.
+2026-07-24 19:46:39,971: The following basins had not enough valid target values to calculate a standard deviation: 02LB009. NSE loss values for this basin will be NaN.
+2026-07-24 19:49:57,163: The following basins had not enough valid target values to calculate a standard deviation: 04010500. NSE loss values for this basin will be NaN.
+2026-07-24 19:52:01,702: The following basins had not enough valid target values to calculate a standard deviation: 04108660. NSE loss values for this basin will be NaN.
+2026-07-24 19:53:21,093: The following basins had not enough valid target values to calculate a standard deviation: 04168400. NSE loss values for this basin will be NaN.
+2026-07-24 19:54:41,193: The following basins had not enough valid target values to calculate a standard deviation: 04220045. NSE loss values for this basin will be NaN.
+2026-07-24 19:56:19,051: The following basins had not enough valid target values to calculate a standard deviation: 40851385. NSE loss values for this basin will be NaN.
+2026-07-24 19:56:23,361: Epoch 3 average validation loss: 0.00164 -- Median validation metrics: avg_loss: 0.00164, NSE: 0.88172, KGE: 0.88067
+2026-07-24 20:35:54,619: Epoch 4 average loss: avg_loss: 0.00177, avg_total_loss: 0.00177
+2026-07-24 21:16:17,723: Epoch 5 average loss: avg_loss: 0.00258, avg_total_loss: 0.00258
+2026-07-24 21:56:27,052: Epoch 6 average loss: avg_loss: 0.00161, avg_total_loss: 0.00161
+2026-07-24 22:14:47,314: Epoch 6 average validation loss: 0.00119 -- Median validation metrics: avg_loss: 0.00119, NSE: 0.91219, KGE: 0.91990
+2026-07-24 22:54:28,197: Epoch 7 average loss: avg_loss: 0.00135, avg_total_loss: 0.00135
+2026-07-24 23:35:03,947: Epoch 8 average loss: avg_loss: 0.00159, avg_total_loss: 0.00159
+2026-07-25 00:15:13,863: Epoch 9 average loss: avg_loss: 0.00119, avg_total_loss: 0.00119
+2026-07-25 00:34:01,649: Epoch 9 average validation loss: 0.00100 -- Median validation metrics: avg_loss: 0.00100, NSE: 0.92329, KGE: 0.90958
+2026-07-25 01:13:07,926: Epoch 10 average loss: avg_loss: 0.00114, avg_total_loss: 0.00114
+2026-07-25 01:53:38,470: Epoch 11 average loss: avg_loss: 0.00111, avg_total_loss: 0.00111
+2026-07-25 02:33:37,146: Epoch 12 average loss: avg_loss: 0.00107, avg_total_loss: 0.00107
+2026-07-25 02:53:00,881: Epoch 12 average validation loss: 0.00083 -- Median validation metrics: avg_loss: 0.00083, NSE: 0.93516, KGE: 0.91664
+2026-07-25 03:31:46,888: Epoch 13 average loss: avg_loss: 0.00103, avg_total_loss: 0.00103
+2026-07-30 20:14:05,531: Logging to /fs/site8/eccc/mrd/rpnet/ovk001/GripGl_LSTM/new_bassin/EXPERIMENT/Apply_Gl_Lstm_Exp1/runs/V31_30ep-256N_ens1_2407_173608/output.log initialized.
+2026-07-30 20:14:05,532: ### Folder structure created at /fs/site8/eccc/mrd/rpnet/ovk001/GripGl_LSTM/new_bassin/EXPERIMENT/Apply_Gl_Lstm_Exp1/runs/V31_30ep-256N_ens1_2407_173608
+2026-07-30 20:14:05,532: ### Continue training of run stored in /fs/site8/eccc/mrd/rpnet/ovk001/GripGl_LSTM/new_bassin/EXPERIMENT/Apply_Gl_Lstm_Exp1/runs/V31_30ep-256N_ens1_2407_173608
+2026-07-30 20:14:05,532: ### Run configurations for V31_30ep-256N_ens1
+2026-07-30 20:14:05,532: allow_subsequent_nan_losses: 10
+2026-07-30 20:14:05,532: batch_size: 64
+2026-07-30 20:14:05,532: clip_gradient_norm: 1
+2026-07-30 20:14:05,532: clip_targets_to_zero: ['qobs_mm_per_day']
+2026-07-30 20:14:05,532: commit_hash: d6d7aa5
+2026-07-30 20:14:05,532: data_dir: /home/ovk001/store8/GripGl_LSTM/new_bassin/EXPERIMENT/Gl_Lstm_Exp1
+2026-07-30 20:14:05,532: dataset: generic
+2026-07-30 20:14:05,532: device: cuda:3
+2026-07-30 20:14:05,532: dynamic_inputs: ['PR0', 'FB', 'P0', 'FI', 'HR', 'min_TT', 'max_TT', 'UU', 'VV']
+2026-07-30 20:14:05,532: epochs: 30
+2026-07-30 20:14:05,532: experiment_name: V31_30ep-256N_ens1
+2026-07-30 20:14:05,532: head: regression
+2026-07-30 20:14:05,532: hidden_size: 256
+2026-07-30 20:14:05,532: img_log_dir: /fs/site8/eccc/mrd/rpnet/ovk001/GripGl_LSTM/new_bassin/EXPERIMENT/Apply_Gl_Lstm_Exp1/runs/V31_30ep-256N_ens1_2407_173608/img_log
+2026-07-30 20:14:05,532: initial_forget_bias: 3
+2026-07-30 20:14:05,532: learning_rate: {0: 0.0005, 20: 0.0001, 30: 5e-05}
+2026-07-30 20:14:05,532: log_interval: 20
+2026-07-30 20:14:05,532: log_n_figures: 0
+2026-07-30 20:14:05,532: log_tensorboard: True
+2026-07-30 20:14:05,532: loss: NSE
+2026-07-30 20:14:05,532: metrics: ['NSE', 'KGE']
+2026-07-30 20:14:05,532: model: cudalstm
+2026-07-30 20:14:05,532: num_workers: 12
+2026-07-30 20:14:05,532: number_of_basins: 584
+2026-07-30 20:14:05,532: optimizer: Adam
+2026-07-30 20:14:05,532: output_activation: linear
+2026-07-30 20:14:05,532: output_dropout: 0.4
+2026-07-30 20:14:05,532: package_version: 1.13.0
+2026-07-30 20:14:05,532: predict_last_n: 1
+2026-07-30 20:14:05,532: run_dir: /fs/site8/eccc/mrd/rpnet/ovk001/GripGl_LSTM/new_bassin/EXPERIMENT/Apply_Gl_Lstm_Exp1/runs/V31_30ep-256N_ens1_2407_173608
+2026-07-30 20:14:05,532: save_validation_results: False
+2026-07-30 20:14:05,532: seed: 1
+2026-07-30 20:14:05,532: seq_length: 365
+2026-07-30 20:14:05,532: static_attributes: ['p_mean', 'pet_mean', 'aridity', 't_mean', 'frac_snow', 'high_prec_freq', 'high_prec_dur', 'low_prec_freq', 'low_prec_dur', 'Temperate-or-sub-polar-needleleaf-forest', 'Temperate-or-sub-polar-broadleaf-deciduous-forest', 'Mixed-Forest', 'Temperate-or-sub-polar-shrubland', 'Temperate-or-sub-polar-grassland', 'Wetland', 'Cropland', 'Urban-and-Built-up', 'Water', 'Barren-lands', 'mean_elev', 'mean_slope', 'std_elev', 'std_slope', 'area_km2', 'CLAY', 'SAND', 'SILT', 'OC', 'BD', 'GRAV']
+2026-07-30 20:14:05,533: target_variables: ['qobs_mm_per_day']
+2026-07-30 20:14:05,533: test_basin_file: /home/ovk001/store8/GripGl_LSTM/new_bassin/EXPERIMENT/Gl_Lstm_Exp1/bassins/valid_basins_weights.txt
+2026-07-30 20:14:05,533: test_end_date: 2023-12-31 00:00:00
+2026-07-30 20:14:05,533: test_start_date: 2021-01-01 00:00:00
+2026-07-30 20:14:05,533: train_basin_file: /home/ovk001/store8/GripGl_LSTM/new_bassin/EXPERIMENT/Gl_Lstm_Exp1/bassins/valid_basins_weights.txt
+2026-07-30 20:14:05,533: train_dir: /fs/site8/eccc/mrd/rpnet/ovk001/GripGl_LSTM/new_bassin/EXPERIMENT/Apply_Gl_Lstm_Exp1/runs/V31_30ep-256N_ens1_2407_173608/train_data
+2026-07-30 20:14:05,533: train_end_date: 2020-12-31 00:00:00
+2026-07-30 20:14:05,533: train_start_date: 2010-01-01 00:00:00
+2026-07-30 20:14:05,533: validate_every: 3
+2026-07-30 20:14:05,533: validate_n_random_basins: 9999
+2026-07-30 20:14:05,533: validation_basin_file: /home/ovk001/store8/GripGl_LSTM/new_bassin/EXPERIMENT/Gl_Lstm_Exp1/bassins/valid_basins_weights.txt
+2026-07-30 20:14:05,533: validation_end_date: 2020-12-31 00:00:00
+2026-07-30 20:14:05,533: validation_start_date: 2010-01-01 00:00:00
+2026-07-30 20:14:05,533: is_continue_training: True
+2026-07-30 20:14:05,533: base_run_dir: /fs/site8/eccc/mrd/rpnet/ovk001/GripGl_LSTM/new_bassin/EXPERIMENT/Apply_Gl_Lstm_Exp1/runs/V31_30ep-256N_ens1_2407_173608
+2026-07-30 20:14:06,215: ### Device cuda:3 will be used for training
+2026-07-30 20:14:08,043: AMP enabled with BF16 (no gradient scaling needed)
+2026-07-30 20:14:08,803: Loading basin data into xarray data set.
+2026-07-30 20:14:42,546: Calculating target variable stds per basin
+2026-07-30 20:14:43,620: The following basins had not enough valid target values to calculate a standard deviation: 02AB004, 02AB010, 02AB011, 02AB013, 02AD008, 02AD009, 02DC003, 02DC007, 02DC008, 02DC010, 02JD006, 02JD010, 02JD011, 02JD012, 02JE012, 02JE021, 02KA002, 02KE005, 02KF009, 02LB009, 04010500, 04108660, 04168400, 04220045, 40851385. NSE loss values for this basin will be NaN.
+2026-07-30 20:14:44,272: Create lookup table and convert to pytorch tensor
+2026-07-30 20:15:39,735: These basins do not have a single valid sample in the train period: ['02AB004', '02AB010', '02AB011', '02AB013', '02AD008', '02AD009', '02DC003', '02DC007', '02DC008', '02DC010', '02JD006', '02JD010', '02JD011', '02JD012', '02JE012', '02JE021', '02KA002', '02KE005', '02KF009', '02LB009', '04010500', '04108660', '04168400', '04220045', '40851385']
+2026-07-30 20:15:56,953: Model compiled with torch.compile()
+2026-07-30 20:15:56,954: Continue training from epoch 13
+2026-07-30 20:15:56,984: Uncaught exception
+Traceback (most recent call last):
+  File "/fs/site8/eccc/mrd/rpnet/ovk001/machine_learning/cmc_neuralhydrology-test-new/neuralhydrology/nh_run.py", line 178, in <module>
+    _main()
+  File "/fs/site8/eccc/mrd/rpnet/ovk001/machine_learning/cmc_neuralhydrology-test-new/neuralhydrology/nh_run.py", line 45, in _main
+    continue_run(run_dir=Path(args["run_dir"]),
+  File "/fs/site8/eccc/mrd/rpnet/ovk001/machine_learning/cmc_neuralhydrology-test-new/neuralhydrology/nh_run.py", line 109, in continue_run
+    start_training(base_config)
+  File "/fs/site8/eccc/mrd/rpnet/ovk001/machine_learning/cmc_neuralhydrology-test-new/neuralhydrology/training/train.py", line 19, in start_training
+    trainer.initialize_training()
+  File "/fs/site8/eccc/mrd/rpnet/ovk001/machine_learning/cmc_neuralhydrology-test-new/neuralhydrology/training/basetrainer.py", line 193, in initialize_training
+    self._restore_training_state()
+  File "/fs/site8/eccc/mrd/rpnet/ovk001/machine_learning/cmc_neuralhydrology-test-new/neuralhydrology/training/basetrainer.py", line 320, in _restore_training_state
+    self.model.load_state_dict(torch.load(weight_path, map_location=self.device, weights_only=False))
+  File "/fs/site8/eccc/mrd/rpnet/ovk001/machine_learning/cmc_neuralhydrology-test-new/.venv/lib/python3.11/site-packages/torch/nn/modules/module.py", line 2638, in load_state_dict
+    raise RuntimeError(
+RuntimeError: Error(s) in loading state_dict for OptimizedModule:
+	Missing key(s) in state_dict: "_orig_mod.lstm.weight_ih_l0", "_orig_mod.lstm.weight_hh_l0", "_orig_mod.lstm.bias_ih_l0", "_orig_mod.lstm.bias_hh_l0", "_orig_mod.head.net.0.weight", "_orig_mod.head.net.0.bias". 
+	Unexpected key(s) in state_dict: "lstm.weight_ih_l0", "lstm.weight_hh_l0", "lstm.bias_ih_l0", "lstm.bias_hh_l0", "head.net.0.weight", "head.net.0.bias". 
+2026-07-30 20:54:47,620: Logging to /fs/site8/eccc/mrd/rpnet/ovk001/GripGl_LSTM/new_bassin/EXPERIMENT/Apply_Gl_Lstm_Exp1/runs/V31_30ep-256N_ens1_2407_173608/output.log initialized.
+2026-07-30 20:54:47,620: ### Folder structure created at /fs/site8/eccc/mrd/rpnet/ovk001/GripGl_LSTM/new_bassin/EXPERIMENT/Apply_Gl_Lstm_Exp1/runs/V31_30ep-256N_ens1_2407_173608
+2026-07-30 20:54:47,620: ### Continue training of run stored in /fs/site8/eccc/mrd/rpnet/ovk001/GripGl_LSTM/new_bassin/EXPERIMENT/Apply_Gl_Lstm_Exp1/runs/V31_30ep-256N_ens1_2407_173608
+2026-07-30 20:54:47,620: ### Run configurations for V31_30ep-256N_ens1
+2026-07-30 20:54:47,620: allow_subsequent_nan_losses: 10
+2026-07-30 20:54:47,620: batch_size: 64
+2026-07-30 20:54:47,620: clip_gradient_norm: 1
+2026-07-30 20:54:47,620: clip_targets_to_zero: ['qobs_mm_per_day']
+2026-07-30 20:54:47,620: commit_hash: d6d7aa5
+2026-07-30 20:54:47,620: data_dir: /home/ovk001/store8/GripGl_LSTM/new_bassin/EXPERIMENT/Gl_Lstm_Exp1
+2026-07-30 20:54:47,620: dataset: generic
+2026-07-30 20:54:47,620: device: cuda:1
+2026-07-30 20:54:47,620: dynamic_inputs: ['PR0', 'FB', 'P0', 'FI', 'HR', 'min_TT', 'max_TT', 'UU', 'VV']
+2026-07-30 20:54:47,620: epochs: 30
+2026-07-30 20:54:47,620: experiment_name: V31_30ep-256N_ens1
+2026-07-30 20:54:47,620: head: regression
+2026-07-30 20:54:47,620: hidden_size: 256
+2026-07-30 20:54:47,620: img_log_dir: /fs/site8/eccc/mrd/rpnet/ovk001/GripGl_LSTM/new_bassin/EXPERIMENT/Apply_Gl_Lstm_Exp1/runs/V31_30ep-256N_ens1_2407_173608/img_log
+2026-07-30 20:54:47,620: initial_forget_bias: 3
+2026-07-30 20:54:47,620: learning_rate: {0: 0.0005, 20: 0.0001, 30: 5e-05}
+2026-07-30 20:54:47,620: log_interval: 20
+2026-07-30 20:54:47,620: log_n_figures: 0
+2026-07-30 20:54:47,620: log_tensorboard: True
+2026-07-30 20:54:47,620: loss: NSE
+2026-07-30 20:54:47,620: metrics: ['NSE', 'KGE']
+2026-07-30 20:54:47,620: model: cudalstm
+2026-07-30 20:54:47,620: num_workers: 12
+2026-07-30 20:54:47,620: number_of_basins: 584
+2026-07-30 20:54:47,620: optimizer: Adam
+2026-07-30 20:54:47,620: output_activation: linear
+2026-07-30 20:54:47,620: output_dropout: 0.4
+2026-07-30 20:54:47,620: package_version: 1.13.0
+2026-07-30 20:54:47,620: predict_last_n: 1
+2026-07-30 20:54:47,620: run_dir: /fs/site8/eccc/mrd/rpnet/ovk001/GripGl_LSTM/new_bassin/EXPERIMENT/Apply_Gl_Lstm_Exp1/runs/V31_30ep-256N_ens1_2407_173608
+2026-07-30 20:54:47,620: save_validation_results: False
+2026-07-30 20:54:47,620: seed: 1
+2026-07-30 20:54:47,620: seq_length: 365
+2026-07-30 20:54:47,620: static_attributes: ['p_mean', 'pet_mean', 'aridity', 't_mean', 'frac_snow', 'high_prec_freq', 'high_prec_dur', 'low_prec_freq', 'low_prec_dur', 'Temperate-or-sub-polar-needleleaf-forest', 'Temperate-or-sub-polar-broadleaf-deciduous-forest', 'Mixed-Forest', 'Temperate-or-sub-polar-shrubland', 'Temperate-or-sub-polar-grassland', 'Wetland', 'Cropland', 'Urban-and-Built-up', 'Water', 'Barren-lands', 'mean_elev', 'mean_slope', 'std_elev', 'std_slope', 'area_km2', 'CLAY', 'SAND', 'SILT', 'OC', 'BD', 'GRAV']
+2026-07-30 20:54:47,620: target_variables: ['qobs_mm_per_day']
+2026-07-30 20:54:47,620: test_basin_file: /home/ovk001/store8/GripGl_LSTM/new_bassin/EXPERIMENT/Gl_Lstm_Exp1/bassins/valid_basins_weights.txt
+2026-07-30 20:54:47,621: test_end_date: 2023-12-31 00:00:00
+2026-07-30 20:54:47,621: test_start_date: 2021-01-01 00:00:00
+2026-07-30 20:54:47,621: train_basin_file: /home/ovk001/store8/GripGl_LSTM/new_bassin/EXPERIMENT/Gl_Lstm_Exp1/bassins/valid_basins_weights.txt
+2026-07-30 20:54:47,621: train_dir: /fs/site8/eccc/mrd/rpnet/ovk001/GripGl_LSTM/new_bassin/EXPERIMENT/Apply_Gl_Lstm_Exp1/runs/V31_30ep-256N_ens1_2407_173608/train_data
+2026-07-30 20:54:47,621: train_end_date: 2020-12-31 00:00:00
+2026-07-30 20:54:47,621: train_start_date: 2010-01-01 00:00:00
+2026-07-30 20:54:47,621: validate_every: 3
+2026-07-30 20:54:47,621: validate_n_random_basins: 9999
+2026-07-30 20:54:47,621: validation_basin_file: /home/ovk001/store8/GripGl_LSTM/new_bassin/EXPERIMENT/Gl_Lstm_Exp1/bassins/valid_basins_weights.txt
+2026-07-30 20:54:47,621: validation_end_date: 2020-12-31 00:00:00
+2026-07-30 20:54:47,621: validation_start_date: 2010-01-01 00:00:00
+2026-07-30 20:54:47,621: is_continue_training: True
+2026-07-30 20:54:47,621: base_run_dir: /fs/site8/eccc/mrd/rpnet/ovk001/GripGl_LSTM/new_bassin/EXPERIMENT/Apply_Gl_Lstm_Exp1/runs/V31_30ep-256N_ens1_2407_173608
+2026-07-30 20:54:48,378: ### Device cuda:1 will be used for training
+2026-07-30 20:54:50,284: AMP enabled with BF16 (no gradient scaling needed)
+2026-07-30 20:54:51,070: Loading basin data into xarray data set.
+2026-07-30 20:55:24,941: Calculating target variable stds per basin
+2026-07-30 20:55:26,019: The following basins had not enough valid target values to calculate a standard deviation: 02AB004, 02AB010, 02AB011, 02AB013, 02AD008, 02AD009, 02DC003, 02DC007, 02DC008, 02DC010, 02JD006, 02JD010, 02JD011, 02JD012, 02JE012, 02JE021, 02KA002, 02KE005, 02KF009, 02LB009, 04010500, 04108660, 04168400, 04220045, 40851385. NSE loss values for this basin will be NaN.
+2026-07-30 20:55:26,657: Create lookup table and convert to pytorch tensor
+2026-07-30 20:56:22,311: These basins do not have a single valid sample in the train period: ['02AB004', '02AB010', '02AB011', '02AB013', '02AD008', '02AD009', '02DC003', '02DC007', '02DC008', '02DC010', '02JD006', '02JD010', '02JD011', '02JD012', '02JE012', '02JE021', '02KA002', '02KE005', '02KF009', '02LB009', '04010500', '04108660', '04168400', '04220045', '40851385']
+2026-07-30 20:56:40,016: Model compiled with torch.compile()
+2026-07-30 20:56:40,016: Continue training from epoch 13
+2026-07-30 20:56:40,096: Uncaught exception
+Traceback (most recent call last):
+  File "/fs/site8/eccc/mrd/rpnet/ovk001/machine_learning/cmc_neuralhydrology-test/neuralhydrology/nh_run.py", line 178, in <module>
+    _main()
+  File "/fs/site8/eccc/mrd/rpnet/ovk001/machine_learning/cmc_neuralhydrology-test/neuralhydrology/nh_run.py", line 45, in _main
+    continue_run(run_dir=Path(args["run_dir"]),
+  File "/fs/site8/eccc/mrd/rpnet/ovk001/machine_learning/cmc_neuralhydrology-test/neuralhydrology/nh_run.py", line 109, in continue_run
+    start_training(base_config)
+  File "/fs/site8/eccc/mrd/rpnet/ovk001/machine_learning/cmc_neuralhydrology-test/neuralhydrology/training/train.py", line 19, in start_training
+    trainer.initialize_training()
+  File "/fs/site8/eccc/mrd/rpnet/ovk001/machine_learning/cmc_neuralhydrology-test/neuralhydrology/training/basetrainer.py", line 208, in initialize_training
+    self.experiment_logger = Logger(cfg=self.cfg)
+                             ^^^^^^^^^^^^^^^^^^^^
+  File "/fs/site8/eccc/mrd/rpnet/ovk001/machine_learning/cmc_neuralhydrology-test/neuralhydrology/training/logger.py", line 41, in __init__
+    cfg.dump_config(folder=self.log_dir)
+  File "/fs/site8/eccc/mrd/rpnet/ovk001/machine_learning/cmc_neuralhydrology-test/neuralhydrology/utils/config.py", line 135, in dump_config
+    raise FileExistsError(yml_path)
+FileExistsError: /fs/site8/eccc/mrd/rpnet/ovk001/GripGl_LSTM/new_bassin/EXPERIMENT/Apply_Gl_Lstm_Exp1/runs/V31_30ep-256N_ens1_2407_173608/config.yml
+
+
