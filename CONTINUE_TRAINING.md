@@ -1,0 +1,146 @@
+# Reprendre un entraînement (`continue_training`)
+
+> Ce document explique comment reprendre l'entraînement d'un modèle qui a été interrompu (walltime PBS dépassé, crash, arrêt manuel), pour un seul run ou pour un ensemble sur plusieurs GPUs. Il documente aussi ce qui a changé dans le code et pourquoi.
+
+---
+
+## Le principe en une phrase
+
+`epochs:` dans le fichier de config **n'est plus** "le nombre d'epochs à faire" — c'est **la cible totale**. Si le run est déjà à l'epoch 13 et que `epochs: 30`, reprendre l'entraînement fait les epochs 14 à 30, pas 30 de plus. On ne touche jamais à `epochs:` à la main entre deux sessions.
+
+---
+
+## Reprendre un seul run
+
+```python
+from neuralhydrology.nh_run import continue_run
+from pathlib import Path
+
+continue_run(
+    run_dir=Path("runs/V31_30ep-256N_ens4_2605_132454/"),
+    gpu=0
+)
+```
+
+`run_dir` pointe vers le dossier du run **existant** (celui créé par le premier `start_run`), pas vers un fichier `.yml`. Le code va :
+
+1. Lire `run_dir/config.yml` pour connaître la config d'origine.
+2. Chercher le dernier checkpoint (`model_epoch*.pt`) dans `run_dir` pour savoir à quel epoch reprendre.
+3. Continuer l'entraînement à partir de là, jusqu'à `epochs:` (la cible du config).
+4. Écrire les nouveaux `model_epoch0XX.pt` / `optimizer_state_epoch0XX.pt` **directement dans `run_dir`**, et continuer à écrire dans le même `output.log`.
+
+Si `run_dir` n'a aucun checkpoint (aucun `model_epoch*.pt`), ça échoue avec une erreur claire (`FileNotFoundError`) — ça ne repart jamais silencieusement de zéro.
+
+---
+
+## Reprendre plusieurs runs en parallèle (multi-GPU)
+
+```python
+from neuralhydrology.nh_run_scheduler import schedule_runs
+from pathlib import Path
+
+schedule_runs(
+    mode='continue_training',
+    directory=Path("runs/"),      # dossier qui contient les sous-dossiers de runs
+    gpu_ids=[0, 1, 2, 3],
+    runs_per_gpu=1,
+)
+```
+
+Le scheduler scanne chaque sous-dossier de `directory` :
+
+- lit l'epoch du dernier checkpoint sauvegardé,
+- lit la cible `epochs:` dans le `config.yml` du run (ou utilise `target_epochs=` si fourni en argument),
+- met en file d'attente uniquement les runs dont `dernier epoch < cible`,
+- ignore (sans erreur) les runs déjà à leur cible,
+- lance `continue_run` sur chacun, répartis sur les GPUs disponibles.
+
+**Important : `directory` doit pointer vers le dossier des runs (`runs/`), pas vers celui des seed files (`ens_configs/`).** Pointer vers le mauvais dossier, ou vers un dossier vide, ne produit **aucune erreur** avec `mode='continue_training'` — le scheduler affiche juste `"All runs are already complete. Nothing to do."` et s'arrête. C'est la cause la plus probable si vous ne voyez "rien se passer" sans message d'erreur.
+
+### Mode strict : `continue_training_only`
+
+Si vous voulez être certain de ne jamais tomber dans ce silence (mauvais chemin, dossier vide, rien n'a jamais été lancé), utilisez `continue_training_only` à la place de `continue_training` :
+
+```python
+schedule_runs(
+    mode='continue_training_only',
+    directory=Path("runs/"),
+    gpu_ids=[0, 1, 2, 3],
+    runs_per_gpu=1,
+)
+```
+
+Comportement identique, sauf qu'il lève un `RuntimeError` explicite si **aucun** run du dossier n'a jamais sauvegardé le moindre checkpoint — au lieu de se taire.
+
+---
+
+## Vérifier l'état de tous les runs sans rien lancer
+
+```python
+from pathlib import Path
+from neuralhydrology.nh_run_scheduler import _get_last_completed_epoch, _get_target_epochs_from_config
+
+runs_dir = Path("runs/")
+for run_dir in sorted(runs_dir.iterdir()):
+    if not run_dir.is_dir() or run_dir.name == "processed":
+        continue
+    last = _get_last_completed_epoch(run_dir)
+    try:
+        target = _get_target_epochs_from_config(run_dir)
+    except Exception:
+        target = "?"
+    status = "OK" if isinstance(target, int) and last >= target else "INCOMPLET"
+    print(f"{run_dir.name}: {last}/{target} epochs  [{status}]")
+```
+
+---
+
+## Ce qui a changé (et pourquoi c'était cassé avant)
+
+Avant, chaque reprise créait un **nouveau sous-dossier** `run_dir/continue_training_from_epochXXX/`, et y redirigeait aussi bien le `output.log` que les nouveaux poids. Résultat : en regardant le `output.log` du dossier de base, on ne voyait jamais rien bouger — l'activité réelle était écrite ailleurs, dans un sous-dossier facile à ne pas remarquer. Ce n'était pas un blocage : l'entraînement reprenait bien au bon epoch, mais dans un endroit différent de celui qu'on surveillait.
+
+Depuis le correctif, une reprise écrit **directement dans le dossier du run d'origine** : plus de sous-dossier, `output.log` s'accumule (append) au même endroit, les checkpoints suivent la même séquence de noms de fichiers (`model_epoch014.pt`, `015`, ...) que ceux d'avant.
+
+Les runs qui ont déjà un vieux sous-dossier `continue_training_from_epochXXX/` (créés avant ce correctif) restent lisibles : la recherche du dernier checkpoint (dans le trainer, dans le scheduler, et dans l'évaluation) regarde toujours à la fois la racine du run **et** ces anciens sous-dossiers. Seuls les epochs futurs iront directement à la racine.
+
+Autres correctifs déjà en place dans le code actuel :
+- `torch.load(..., weights_only=False)` — évite le crash `_pickle.UnpicklingError` avec PyTorch ≥ 2.6 lors du chargement de l'état de l'optimizer.
+- Recherche récursive du dernier checkpoint (`run_dir` + anciens sous-dossiers `continue_training_from_epoch*/`) dans le trainer, le scheduler, **et** l'évaluation (`evaluation/tester.py`) — avant, l'évaluation ne regardait que la racine et pouvait charger le mauvais (ancien) checkpoint sur un run repris.
+
+---
+
+## Erreurs courantes
+
+| Ce que vous voyez | Cause probable |
+|---|---|
+| `"All runs are already complete. Nothing to do."` alors que rien n'a jamais tourné | `directory` pointe vers le mauvais dossier (ex: `ens_configs/` au lieu de `runs/`), ou vers un dossier vide. Utilisez `mode='continue_training_only'` pour avoir une erreur explicite à la place. |
+| `FileNotFoundError: No model checkpoint found in ...` | Le `run_dir` donné n'a jamais sauvegardé de checkpoint — la reprise ne peut pas savoir où continuer. Vérifiez que l'entraînement initial a bien tourné jusqu'à au moins un `save_weights_every`. |
+| `"Already at epoch X, target is Y. Nothing to train."` | Le run a déjà atteint sa cible `epochs:`. Normal, rien à faire — sauf si vous voulez pousser plus loin, auquel cas augmentez `epochs:` dans le `config.yml` du run avant de reprendre. |
+| Rien de nouveau dans `output.log` pendant des heures, mais le job PBS tourne | Symptôme de l'ancien bug (voir section précédente) — corrigé. Si ça persiste après mise à jour du code, vérifier que le job n'est pas bloqué au chargement des données (`nvidia-smi`, `ps`, `py-spy dump`). |
+
+---
+
+## Vérifier que le code déployé est à jour
+
+Ce correctif vit dans ce dépôt Git. S'il est utilisé depuis un autre emplacement (ex: un clone séparé sur un cluster de calcul), il faut que cet emplacement soit synchronisé avec ce dépôt pour bénéficier des correctifs :
+
+```bash
+git -C /chemin/vers/le/clone/sur/le/cluster log -1 --oneline
+grep -n "weights_only=False" neuralhydrology/training/basetrainer.py
+```
+
+Si la commande `git log` ne montre pas les commits récents, ou si le `grep` ne trouve rien, le code déployé est une version antérieure au correctif — il faut le mettre à jour (`git pull` ou resynchronisation) avant de relancer une reprise.
+
+---
+
+## Tester rapidement sans attendre des heures
+
+Pour valider que `continue_training` fonctionne, inutile d'attendre un vrai walltime de plusieurs heures. Simulez une interruption :
+
+1. Dans un seed file de test, mettez `epochs: 2` (et si possible un `train_basin_file` réduit à 1-2 bassins pour aller vite).
+2. Lancez-le normalement avec `start_run` — le run se termine, produit `model_epoch001.pt` et `model_epoch002.pt`.
+3. Éditez `epochs: 4` dans le `config.yml` généré dans le dossier du run.
+4. Lancez `continue_run(run_dir=...)` dessus.
+5. Vérifiez : l'entraînement reprend à l'epoch 3 (pas 1), les nouveaux poids apparaissent dans le même dossier, `output.log` s'allonge au lieu d'être remplacé.
+
+Ça exerce exactement le même chemin de code que la vraie reprise, en quelques minutes.

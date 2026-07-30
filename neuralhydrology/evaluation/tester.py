@@ -128,10 +128,20 @@ class BaseTester(object):
 
     def _get_weight_file(self, epoch: int):
         """Get file path to weight file"""
+        # search the run directory and any (older-style) continue_training_from_epoch*/ subfolders,
+        # since resumed runs may have saved checkpoints one level deeper than the run directory.
+        all_weights = list(self.run_dir.glob('model_epoch*.pt'))
+        all_weights += list(self.run_dir.glob('continue_training_from_epoch*/model_epoch*.pt'))
+        if not all_weights:
+            raise FileNotFoundError(f"No model weights found in {self.run_dir}")
+
         if epoch is None:
-            weight_file = sorted(list(self.run_dir.glob('model_epoch*.pt')))[-1]
+            weight_file = max(all_weights, key=lambda p: int(p.stem[-3:]))
         else:
-            weight_file = self.run_dir / f"model_epoch{str(epoch).zfill(3)}.pt"
+            matches = [p for p in all_weights if int(p.stem[-3:]) == epoch]
+            if not matches:
+                raise FileNotFoundError(f"No weight file for epoch {epoch} found in {self.run_dir}")
+            weight_file = matches[0]
 
         return weight_file
 

@@ -450,29 +450,33 @@ class BaseTrainer(object):
             self._grad_scaler = None
 
     def _create_folder_structure(self):
-        # create as subdirectory within run directory of base run
         if self.cfg.is_continue_training:
-            folder_name = f"continue_training_from_epoch{self._epoch:03d}"
-
-            # store dir of base run for easier access in weight loading
+            # Train directly inside the original run directory instead of a nested
+            # continue_training_from_epochXXX/ subfolder. This keeps checkpoints, optimizer
+            # states, and output.log in one place across every resume — evaluation
+            # (evaluation/tester.py) only looks for model_epoch*.pt in the top-level run dir.
             self.cfg.base_run_dir = self.cfg.run_dir
-            self.cfg.run_dir = self.cfg.run_dir / folder_name
+            self.cfg.train_dir = self.cfg.run_dir / "train_data"
+            self.cfg.train_dir.mkdir(parents=True, exist_ok=True)
+            if self.cfg.log_n_figures is not None:
+                self.cfg.img_log_dir = self.cfg.run_dir / "img_log"
+                self.cfg.img_log_dir.mkdir(parents=True, exist_ok=True)
+            return
 
         # create as new folder structure
-        else:
-            now = datetime.now()
-            day = f"{now.day}".zfill(2)
-            month = f"{now.month}".zfill(2)
-            hour = f"{now.hour}".zfill(2)
-            minute = f"{now.minute}".zfill(2)
-            second = f"{now.second}".zfill(2)
-            run_name = f'{self.cfg.experiment_name}_{day}{month}_{hour}{minute}{second}'
+        now = datetime.now()
+        day = f"{now.day}".zfill(2)
+        month = f"{now.month}".zfill(2)
+        hour = f"{now.hour}".zfill(2)
+        minute = f"{now.minute}".zfill(2)
+        second = f"{now.second}".zfill(2)
+        run_name = f'{self.cfg.experiment_name}_{day}{month}_{hour}{minute}{second}'
 
-            # if no directory for the runs is specified, a 'runs' folder will be created in the current working dir
-            if self.cfg.run_dir is None:
-                self.cfg.run_dir = Path().cwd() / "runs" / run_name
-            else:
-                self.cfg.run_dir = self.cfg.run_dir / run_name
+        # if no directory for the runs is specified, a 'runs' folder will be created in the current working dir
+        if self.cfg.run_dir is None:
+            self.cfg.run_dir = Path().cwd() / "runs" / run_name
+        else:
+            self.cfg.run_dir = self.cfg.run_dir / run_name
 
         # create folder + necessary subfolder
         if not self.cfg.run_dir.is_dir():
