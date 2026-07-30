@@ -160,6 +160,60 @@ Toutes les sauvegardes et tous les chargements de poids (`checkpoint_path`, fine
 
 ---
 
+## Le bug `FileExistsError: config.yml` (effet de bord du correctif du sous-dossier)
+
+### Symptôme
+
+```
+File ".../neuralhydrology/training/logger.py", line 41, in __init__
+    cfg.dump_config(folder=self.log_dir)
+File ".../neuralhydrology/utils/config.py", line 135, in dump_config
+    raise FileExistsError(yml_path)
+FileExistsError: .../runs/V31_30ep-256N_ens1_2407_173608/config.yml
+```
+alors que ce `config.yml` est légitimement présent — ce n'est pas un fichier corrompu ou en trop.
+
+### Pourquoi
+
+`Logger.__init__()` sauvegarde une copie de la config dans le dossier du run à chaque démarrage, via `dump_config()`. Cette méthode a toujours eu un garde-fou : si `config.yml` existe déjà dans le dossier cible, elle refuse d'écrire et lève une erreur plutôt que d'écraser silencieusement un fichier existant (utile pour éviter d'effacer un vieux run par erreur).
+
+Avant le correctif du sous-dossier (section plus haut), ce garde-fou ne posait jamais de problème pour `continue_training`, puisque chaque reprise écrivait dans un **nouveau** sous-dossier `continue_training_from_epochXXX/` qui n'avait encore jamais de `config.yml`. Une fois ce correctif appliqué — la reprise écrit maintenant directement dans le dossier d'origine — le `config.yml` de la toute première session s'y trouve déjà, et `dump_config()` refuse de l'écraser. C'est un effet de bord du premier correctif que je n'avais pas anticipé.
+
+### Le correctif
+
+`dump_config()` accepte maintenant un paramètre `overwrite` :
+
+```python
+def dump_config(self, folder: Path, filename: str = 'config.yml', overwrite: bool = False):
+    yml_path = folder / filename
+    if overwrite or not yml_path.exists():
+        ...  # écrit le fichier
+    else:
+        raise FileExistsError(yml_path)
+```
+
+Et `Logger` l'active automatiquement pour les reprises :
+
+```python
+cfg.dump_config(folder=self.log_dir, overwrite=cfg.is_continue_training)
+```
+
+Le garde-fou reste actif pour tous les autres cas (`train`, `finetune`) — seul `continue_training`, où l'on sait qu'on réécrit légitimement dans le même dossier, l'ignore. En bonus, `config.yml` se retrouve à jour à chaque reprise avec le `commit_hash` et le `package_version` de la session qui a fait la reprise — utile pour savoir avec quelle version du code chaque portion de l'entraînement a réellement tourné (voir aussi la section suivante sur les clones multiples).
+
+---
+
+## Attention aux clones multiples sur le cluster
+
+Un piège récurrent, indépendant du code : si plusieurs copies de ce dépôt existent sur le cluster (ex: `neuralhydrology/`, `cmc_neuralhydrology-test/`, `cmc_neuralhydrology-test-new/`), rien ne garantit qu'un `.pbs` donné active la version que vous croyez. Deux sessions consécutives peuvent utiliser deux clones différents — avec des correctifs différents — sans qu'aucune erreur ne le signale, jusqu'à ce qu'un des deux plante pour une raison que l'autre avait déjà réglée.
+
+À vérifier si un comportement semble incohérent d'une session à l'autre :
+```bash
+grep "commit_hash\|package_version" runs/<nom_du_run>/output.log
+```
+Ces deux valeurs sont maintenant écrites à chaque session (voir section précédente) — si elles changent de manière inattendue entre deux reprises du même run, c'est le signe que le `.pbs` (ou le venv qu'il active) pointe vers des clones différents. Le plus sûr est de n'avoir qu'un seul clone de référence sur le cluster, et de vérifier que le `.pbs` l'active explicitement par son chemin complet.
+
+---
+
 ## Erreurs courantes
 
 | Ce que vous voyez | Cause probable |
@@ -169,6 +223,8 @@ Toutes les sauvegardes et tous les chargements de poids (`checkpoint_path`, fine
 | `"Already at epoch X, target is Y. Nothing to train."` | Le run a déjà atteint sa cible `epochs:`. Normal, rien à faire — sauf si vous voulez pousser plus loin, auquel cas augmentez `epochs:` dans le `config.yml` du run avant de reprendre. |
 | Rien de nouveau dans `output.log` pendant des heures, mais le job PBS tourne | Symptôme de l'ancien bug (voir section précédente) — corrigé. Si ça persiste après mise à jour du code, vérifier que le job n'est pas bloqué au chargement des données (`nvidia-smi`, `ps`, `py-spy dump`). |
 | `RuntimeError: ... Missing key(s) ... "_orig_mod.lstm..." / Unexpected key(s) ... "lstm..."` | Bug `torch.compile()` / `_orig_mod.` — voir section dédiée ci-dessus. Corrigé ; ne devrait plus apparaître une fois le code à jour déployé. |
+| `FileExistsError: .../config.yml` en pleine reprise, alors que ce fichier est légitime | Effet de bord du correctif du sous-dossier — voir section dédiée ci-dessus. Corrigé ; ne devrait plus apparaître une fois le code à jour déployé. |
+| Comportement différent entre deux reprises du même run, sans raison apparente | Le `.pbs` a probablement activé deux clones/venvs différents du dépôt entre les deux sessions. Comparer `commit_hash` / `package_version` dans `output.log` entre les deux — voir section « Attention aux clones multiples » ci-dessus. |
 
 ---
 

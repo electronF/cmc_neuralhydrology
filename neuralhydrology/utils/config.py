@@ -88,7 +88,7 @@ class Config(object):
         """
         return self._cfg
 
-    def dump_config(self, folder: Path, filename: str = 'config.yml'):
+    def dump_config(self, folder: Path, filename: str = 'config.yml', overwrite: bool = False):
         """Save the run configuration as a .yml file to disk.
 
         Parameters
@@ -97,14 +97,19 @@ class Config(object):
             Folder in which the configuration will be stored.
         filename : str, optional
             Name of the file that will be stored. Default: 'config.yml'.
+        overwrite : bool, optional
+            If True, overwrite an existing file instead of raising. Used by continue_training,
+            which reuses the original run directory and legitimately needs to refresh the
+            on-disk config.yml (e.g. updated commit_hash / package_version) across resumes.
 
         Raises
         ------
         FileExistsError
-            If the specified folder already contains a file named `filename`.
+            If the specified folder already contains a file named `filename` and `overwrite`
+            is False.
         """
         yml_path = folder / filename
-        if not yml_path.exists():
+        if overwrite or not yml_path.exists():
             with yml_path.open('w') as fp:
                 temp_cfg = {}
                 for key, val in self._cfg.items():
