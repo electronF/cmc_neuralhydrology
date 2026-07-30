@@ -109,6 +109,57 @@ Autres correctifs déjà en place dans le code actuel :
 
 ---
 
+## Le bug `torch.compile()` / `_orig_mod.` (clés de checkpoint qui ne correspondent plus)
+
+### Symptôme
+
+```
+RuntimeError: Error(s) in loading state_dict for OptimizedModule:
+	Missing key(s) in state_dict: "_orig_mod.lstm.weight_ih_l0", "_orig_mod.lstm.weight_hh_l0", ...
+	Unexpected key(s) in state_dict: "lstm.weight_ih_l0", "lstm.weight_hh_l0", ...
+```
+en essayant de reprendre un run (`continue_run` / `continue_training`).
+
+### Ce qu'est `torch.compile()`
+
+Le correctif de performance du 6 juillet a ajouté `torch.compile(self.model)` pour accélérer l'entraînement. `torch.compile()` ne modifie pas le modèle — il l'enveloppe dans un objet `OptimizedModule` qui stocke le vrai modèle dans un attribut interne `_orig_mod`. Conséquence directe : le `state_dict()` de l'objet enveloppé a toutes ses clés préfixées par `_orig_mod.` :
+
+| Modèle non compilé | Modèle compilé (`torch.compile`) |
+|---|---|
+| `lstm.weight_ih_l0` | `_orig_mod.lstm.weight_ih_l0` |
+| `head.net.0.weight` | `_orig_mod.head.net.0.weight` |
+
+C'est littéralement le même modèle, seul le nommage des clés change.
+
+### Pourquoi ça a cassé une reprise précise
+
+Chronologie typique (vue sur le run `V31_30ep-256N_ens7`) :
+
+1. **Session 1** : le job tourne avec le code **avant** l'ajout de `torch.compile()`. Le modèle est sauvegardé "brut" → `model_epoch012.pt` contient des clés simples (`lstm.weight_ih_l0`, ...).
+2. **Session 2, quelques jours plus tard** : on reprend l'entraînement avec le code **après** l'ajout de `torch.compile()`. Le code construit le modèle, le compile (devient un `OptimizedModule`), puis essaie de charger `model_epoch012.pt` dedans.
+3. PyTorch compare les clés attendues par l'objet compilé (`_orig_mod.lstm...`) à celles du fichier (`lstm...`, sans préfixe) → aucune ne correspond → `RuntimeError`.
+
+Ce n'est donc pas une histoire d'epoch, de dossier ou de fichier corrompu — uniquement un désaccord de **nommage des clés**, causé par le changement de version de code entre les deux sessions.
+
+### Pourquoi ce n'était pas juste "un problème pour cette fois"
+
+Le même bug aurait resurgi ailleurs, dans l'autre sens : une fois `continue_training` en train de sauvegarder de nouveaux checkpoints (epoch 13, 14, ...) via le modèle compilé, ces fichiers auraient eu des clés préfixées `_orig_mod.`. Puis, en évaluant ce run avec `evaluation/tester.py` — qui, lui, ne compile jamais le modèle — le chargement aurait de nouveau échoué, cette fois dans le sens inverse (modèle brut essayant de lire des clés préfixées).
+
+### Le correctif
+
+Dans [basetrainer.py](neuralhydrology/training/basetrainer.py), une méthode `_raw_model()` retourne toujours le modèle **sans** son enveloppe de compilation :
+
+```python
+def _raw_model(self) -> torch.nn.Module:
+    return getattr(self.model, '_orig_mod', self.model)
+```
+
+`getattr(x, '_orig_mod', x)` veut dire : *"si `self.model` a un attribut `_orig_mod` (donc s'il est compilé), utilise-le ; sinon utilise `self.model` tel quel."*
+
+Toutes les sauvegardes et tous les chargements de poids (`checkpoint_path`, finetuning, `_restore_training_state` pour `continue_training`, et la sauvegarde à chaque epoch) passent maintenant par `_raw_model()`. Résultat : les fichiers `.pt` sur disque ont toujours des clés simples, que le modèle soit compilé ou non au moment de la sauvegarde/du chargement — donc compatibles entre anciennes sessions, nouvelles sessions, `continue_training`, et l'évaluation, indéfiniment.
+
+---
+
 ## Erreurs courantes
 
 | Ce que vous voyez | Cause probable |
@@ -117,6 +168,7 @@ Autres correctifs déjà en place dans le code actuel :
 | `FileNotFoundError: No model checkpoint found in ...` | Le `run_dir` donné n'a jamais sauvegardé de checkpoint — la reprise ne peut pas savoir où continuer. Vérifiez que l'entraînement initial a bien tourné jusqu'à au moins un `save_weights_every`. |
 | `"Already at epoch X, target is Y. Nothing to train."` | Le run a déjà atteint sa cible `epochs:`. Normal, rien à faire — sauf si vous voulez pousser plus loin, auquel cas augmentez `epochs:` dans le `config.yml` du run avant de reprendre. |
 | Rien de nouveau dans `output.log` pendant des heures, mais le job PBS tourne | Symptôme de l'ancien bug (voir section précédente) — corrigé. Si ça persiste après mise à jour du code, vérifier que le job n'est pas bloqué au chargement des données (`nvidia-smi`, `ps`, `py-spy dump`). |
+| `RuntimeError: ... Missing key(s) ... "_orig_mod.lstm..." / Unexpected key(s) ... "lstm..."` | Bug `torch.compile()` / `_orig_mod.` — voir section dédiée ci-dessus. Corrigé ; ne devrait plus apparaître une fois le code à jour déployé. |
 
 ---
 

@@ -98,6 +98,17 @@ class BaseTrainer(object):
     def _set_regularization(self):
         self.loss_obj.set_regularization_terms(get_regularization_obj(cfg=self.cfg))
 
+    def _raw_model(self) -> torch.nn.Module:
+        """Return the model without its torch.compile() wrapper, if any.
+
+        torch.compile() wraps the model in an OptimizedModule whose state_dict keys are
+        prefixed with '_orig_mod.'. Checkpoints must always be saved/loaded through the
+        wrapped module directly, so that files on disk have the same keys regardless of
+        whether the model happens to be compiled — otherwise continue_training, finetuning,
+        and evaluation (which never compiles) can't read each other's checkpoints.
+        """
+        return getattr(self.model, '_orig_mod', self.model)
+
     def _get_tester(self) -> BaseTester:
         return get_tester(cfg=self.cfg, run_dir=self.cfg.run_dir, period="validation", init_model=False)
 
@@ -171,12 +182,14 @@ class BaseTrainer(object):
         if self.cfg.checkpoint_path is not None:
             LOGGER.info(f"Starting training from Checkpoint {self.cfg.checkpoint_path}")
             # weights_only=False needed for PyTorch >= 2.6 compatibility with optimizer states
-            self.model.load_state_dict(torch.load(str(self.cfg.checkpoint_path), map_location=self.device, weights_only=False))
+            self._raw_model().load_state_dict(
+                torch.load(str(self.cfg.checkpoint_path), map_location=self.device, weights_only=False))
         elif self.cfg.checkpoint_path is None and self.cfg.is_finetuning:
             # the default for finetuning is the last model state
             checkpoint_path = [x for x in sorted(list(self.cfg.base_run_dir.glob('model_epoch*.pt')))][-1]
             LOGGER.info(f"Starting training from checkpoint {checkpoint_path}")
-            self.model.load_state_dict(torch.load(str(checkpoint_path), map_location=self.device, weights_only=False))
+            self._raw_model().load_state_dict(
+                torch.load(str(checkpoint_path), map_location=self.device, weights_only=False))
 
         # Freeze model parts from pre-trained model.
         if self.cfg.is_finetuning:
@@ -317,12 +330,12 @@ class BaseTrainer(object):
         optimizer_path = weight_path.parent / f"optimizer_state_epoch{epoch}.pt"
 
         LOGGER.info(f"Continue training from epoch {int(epoch)}")
-        self.model.load_state_dict(torch.load(weight_path, map_location=self.device, weights_only=False))
+        self._raw_model().load_state_dict(torch.load(weight_path, map_location=self.device, weights_only=False))
         self.optimizer.load_state_dict(torch.load(str(optimizer_path), map_location=self.device, weights_only=False))
 
     def _save_weights_and_optimizer(self, epoch: int):
         weight_path = self.cfg.run_dir / f"model_epoch{epoch:03d}.pt"
-        torch.save(self.model.state_dict(), str(weight_path))
+        torch.save(self._raw_model().state_dict(), str(weight_path))
 
         optimizer_path = self.cfg.run_dir / f"optimizer_state_epoch{epoch:03d}.pt"
         torch.save(self.optimizer.state_dict(), str(optimizer_path))
