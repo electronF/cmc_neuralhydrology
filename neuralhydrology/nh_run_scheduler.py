@@ -14,11 +14,12 @@ import numpy as np
 def _get_args() -> dict:
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('mode', choices=["train", "evaluate", "finetune", "continue_training"])
+    parser.add_argument('mode', choices=["train", "evaluate", "finetune", "continue_training", "continue_training_only"])
     parser.add_argument('--directory', type=str, required=True)
     parser.add_argument('--gpu-ids', type=int, nargs='+', required=True)
     parser.add_argument('--runs-per-gpu', type=int, required=True)
-    # Only used in continue_training mode. If not provided, the target is read from each run's config.yml.
+    # Only used in continue_training / continue_training_only mode. If not provided, the target is read from
+    # each run's config.yml.
     parser.add_argument('--target-epochs', type=int, default=None,
                         help="Total epoch target for continue_training. Overrides the value in each run's config.yml.")
 
@@ -93,25 +94,44 @@ def _find_incomplete_runs(directory: Path, target_epochs: Optional[int]) -> List
     return incomplete
 
 
+def _has_any_started_run(directory: Path) -> bool:
+    """Check whether at least one run in `directory` has ever saved a checkpoint.
+
+    Used by 'continue_training_only' to distinguish "nothing to resume because everything
+    is already finished" from "nothing to resume because training was never started" (e.g.
+    the wrong directory was passed, or the run folders don't exist yet).
+    """
+    for run_dir in sorted(directory.iterdir()):
+        if not run_dir.is_dir() or run_dir.name == "processed":
+            continue
+        if _get_last_completed_epoch(run_dir) > 0:
+            return True
+    return False
+
+
 def schedule_runs(mode: str, directory: Path, gpu_ids: List[int], runs_per_gpu: int,
                   target_epochs: Optional[int] = None):
     """Schedule multiple runs across one or multiple GPUs.
 
     Parameters
     ----------
-    mode : {'train', 'evaluate', 'finetune', 'continue_training'}
+    mode : {'train', 'evaluate', 'finetune', 'continue_training', 'continue_training_only'}
         Use 'train' to schedule fresh training from config files, 'evaluate' to evaluate trained models,
-        'finetune' for finetuning, or 'continue_training' to resume incomplete runs across multiple GPUs.
+        'finetune' for finetuning, 'continue_training' to resume incomplete runs across multiple GPUs, or
+        'continue_training_only' for the same behavior as 'continue_training' except it raises a RuntimeError
+        instead of silently doing nothing when `directory` contains no run that has ever saved a checkpoint
+        (e.g. wrong path, or training was never actually started).
     directory : Path
         For 'train' and 'finetune': path to a folder of .yml config files.
         For 'evaluate': path to a folder of run directories.
-        For 'continue_training': path to a folder of run directories to resume.
+        For 'continue_training' / 'continue_training_only': path to a folder of run directories to resume.
     gpu_ids : List[int]
         List of GPU ids to use.
     runs_per_gpu : int
         Number of runs to start on a single GPU at a time.
     target_epochs : int, optional
-        Only for 'continue_training'. If given, overrides the 'epochs' value from each run's config.yml.
+        Only for 'continue_training' / 'continue_training_only'. If given, overrides the 'epochs' value from
+        each run's config.yml.
 
     """
 
@@ -122,7 +142,12 @@ def schedule_runs(mode: str, directory: Path, gpu_ids: List[int], runs_per_gpu: 
             processed_config_directory.mkdir()
     elif mode == "evaluate":
         processes = list(directory.glob('*'))
-    elif mode == "continue_training":
+    elif mode in ("continue_training", "continue_training_only"):
+        if mode == "continue_training_only" and not _has_any_started_run(directory):
+            raise RuntimeError(
+                f"continue_training_only: no run with a saved checkpoint was found in {directory}. "
+                "Either the directory is wrong, or training was never started for these runs — "
+                "use mode='train' to launch it from the config files first.")
         print(f"Scanning {directory} for incomplete runs...")
         run_dirs = _find_incomplete_runs(directory, target_epochs)
         if not run_dirs:
@@ -165,7 +190,7 @@ def schedule_runs(mode: str, directory: Path, gpu_ids: List[int], runs_per_gpu: 
             # build the command depending on mode
             if mode in ['train', 'finetune']:
                 run_command = f"python {script_path} {mode} --config-file {process} --gpu {gpu_id}"
-            elif mode == 'continue_training':
+            elif mode in ('continue_training', 'continue_training_only'):
                 run_command = f"python {script_path} continue_training --run-dir {process} --gpu {gpu_id}"
             else:
                 run_command = f"python {script_path} evaluate --run-dir {process} --gpu {gpu_id}"
