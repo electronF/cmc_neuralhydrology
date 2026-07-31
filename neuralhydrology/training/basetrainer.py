@@ -175,7 +175,9 @@ class BaseTrainer(object):
 
         # torch.compile() fuses and optimizes the computation graph — first epoch is slower (compilation),
         # all subsequent ones are faster. Only available on PyTorch >= 2.0 and worthwhile only on CUDA.
-        if hasattr(torch, 'compile') and self.device.type == 'cuda':
+        # Opt-out via `compile_model: False` in the run config: compilation needs a writable disk
+        # cache for Triton's generated kernels, which can fail on clusters with tight disk quotas.
+        if self.cfg.compile_model and hasattr(torch, 'compile') and self.device.type == 'cuda':
             self.model = torch.compile(self.model)
             LOGGER.info("Model compiled with torch.compile()")
 

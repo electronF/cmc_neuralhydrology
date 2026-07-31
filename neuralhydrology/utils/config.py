@@ -310,6 +310,13 @@ class Config(object):
         return self._as_default_list(self._cfg.get("clip_targets_to_zero", []))
 
     @property
+    def compile_model(self) -> bool:
+        # torch.compile() needs a writable disk cache for its compiled kernels (Triton).
+        # On clusters with tight disk quotas this can fail well into training (on the first
+        # forward pass, not at compile time), so it's a config option, not a hardcoded default.
+        return self._cfg.get("compile_model", True)
+
+    @property
     def continue_from_epoch(self) -> int:
         return self._cfg.get("continue_from_epoch", None)
 
@@ -947,13 +954,13 @@ class Config(object):
     @property
     def dynamic_learning_rate(self) -> bool:
         """Whether to use  dynamic learning rate. Defaults to False if not set."""
-        early_stopping = self._cfg.get("early_stopping", False)
-        if early_stopping and self.validate_every != 1:
+        dynamic_learning_rate = self._cfg.get("dynamic_learning_rate", False)
+        if dynamic_learning_rate and self.validate_every != 1:
             raise ValueError(
-                "Early stopping can only be used if validation is performed every epoch (validate_every=1). "
-                "Set validate_every=1 in the config to use early stopping."
+                "Dynamic learning rate can only be used if validation is performed every epoch (validate_every=1). "
+                "Set validate_every=1 in the config to use dynamic learning rate."
             )
-        return early_stopping
+        return dynamic_learning_rate
     
     @property
     def patience_dynamic_learning_rate(self) -> int:

@@ -1,6 +1,8 @@
 # Reprendre un entraînement (`continue_training`)
 
 > Ce document explique comment reprendre l'entraînement d'un modèle qui a été interrompu (walltime PBS dépassé, crash, arrêt manuel), pour un seul run ou pour un ensemble sur plusieurs GPUs. Il documente aussi ce qui a changé dans le code et pourquoi.
+>
+> Pour les paramètres qui contrôlent la durée/l'arrêt d'un entraînement (early stopping, learning rate dynamique, `epochs:`, `compile_model`), voir [OPTIONS_ENTRAINEMENT.md](OPTIONS_ENTRAINEMENT.md).
 
 ---
 
