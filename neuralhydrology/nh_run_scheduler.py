@@ -141,7 +141,7 @@ def schedule_runs(mode: str, directory: Path, gpu_ids: List[int], runs_per_gpu: 
         if not processed_config_directory.is_dir():
             processed_config_directory.mkdir()
     elif mode == "evaluate":
-        processes = list(directory.glob('*'))
+        processes = [p for p in directory.glob('*') if p.is_dir() and p.name != "processed"]
     elif mode in ("continue_training", "continue_training_only"):
         if mode == "continue_training_only" and not _has_any_started_run(directory):
             raise RuntimeError(
