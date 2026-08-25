@@ -380,30 +380,41 @@ class BaseTrainer(object):
 
                 loss, all_losses = self.loss_obj(predictions, data)
 
-            # early stop training if loss is NaN
+            # early stop training if loss or gradients are NaN/Inf
             if torch.isnan(loss):
-                nan_count += 1
-                if nan_count > self._allow_subsequent_nan_losses:
-                    raise RuntimeError(f"Loss was NaN for {nan_count} times in a row. Stopped training.")
-                LOGGER.warning(f"Loss is Nan; ignoring step. (#{nan_count}/{self._allow_subsequent_nan_losses})")
+                step_ok = False
             else:
-                nan_count = 0
-
                 self.optimizer.zero_grad()
 
                 if self._grad_scaler is not None:
                     # FP16 needs loss scaling to avoid underflow in gradients
                     self._grad_scaler.scale(loss).backward()
-                    if self.cfg.clip_gradient_norm is not None:
-                        self._grad_scaler.unscale_(self.optimizer)
-                        torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.clip_gradient_norm)
-                    self._grad_scaler.step(self.optimizer)
-                    self._grad_scaler.update()
+                    self._grad_scaler.unscale_(self.optimizer)
                 else:
                     loss.backward()
-                    if self.cfg.clip_gradient_norm is not None:
-                        torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.clip_gradient_norm)
-                    self.optimizer.step()
+
+                # clip_grad_norm_ also returns the pre-clip gradient norm, which lets us catch a
+                # NaN/Inf gradient (e.g. from an unstable batch) before it corrupts the weights.
+                # With BF16 there is no GradScaler to catch this automatically like there is for FP16.
+                grad_norm = torch.nn.utils.clip_grad_norm_(
+                    self.model.parameters(),
+                    self.cfg.clip_gradient_norm if self.cfg.clip_gradient_norm is not None else 1e9)
+                step_ok = bool(torch.isfinite(grad_norm))
+
+                if step_ok:
+                    if self._grad_scaler is not None:
+                        self._grad_scaler.step(self.optimizer)
+                        self._grad_scaler.update()
+                    else:
+                        self.optimizer.step()
+
+            if step_ok:
+                nan_count = 0
+            else:
+                nan_count += 1
+                if nan_count > self._allow_subsequent_nan_losses:
+                    raise RuntimeError(f"Loss/gradients were NaN for {nan_count} times in a row. Stopped training.")
+                LOGGER.warning(f"Loss or gradients are NaN; ignoring step. (#{nan_count}/{self._allow_subsequent_nan_losses})")
 
             pbar.set_postfix_str(f"Loss: {loss.item():.4f}")
 
